@@ -1,0 +1,1 @@
+worker: python gold_tracker.py
