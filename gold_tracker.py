@@ -64,7 +64,7 @@ async def main():
             if change > 0:
                 signal, _ = analyze_price(current['price'], previous_price)
             else:
-                signal, _ = analyze_price(previous_price, current['price'])
+                signal, _ = analyze_price(current['price'], previous_price)
             message += f"\n📈 Change: RM {change:+.2f} ({signal})"
 
         previous_price = current['price']
