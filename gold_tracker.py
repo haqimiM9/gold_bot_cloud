@@ -50,9 +50,11 @@ async def main():
     current = get_gold_price()
     if current:
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+        timestamp_human = datetime.datetime.fromtimestamp(current["timestamp"], datetime.timezone(datetime.timedelta(hours=8)))
+        
         message = (
             f"💰 Gold Price Alert (MYR) - {now.strftime('%d %b %Y %I:%M %p')}\n"
-            f"Timestamp: {current['timestamp']}\n"
+            f"Price Update Time: {timestamp_human.strftime('%d %b %Y %I:%M %p')}\n"
             f"Spot Price: RM {current['price']:.2f}\n"
             f"999.9 (24K): RM {current['gram_24k']:.2f}/g\n"
             f"916 (22K): RM {current['gram_22k']:.2f}/g\n"
