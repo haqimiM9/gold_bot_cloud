@@ -2,14 +2,14 @@ import requests
 import datetime
 import os
 from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ContextTypes
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
 GOLD_API_KEY = os.environ["GOLD_API_KEY"]
 GOLD_API_URL = "https://www.goldapi.io/api/XAU/MYR"
 
 headers = {"x-access-token": GOLD_API_KEY, "Content-Type": "application/json"}
-
 previous_prices = {
     "gram_24k": None,
     "gram_22k": None,
@@ -20,37 +20,33 @@ def get_gold_price():
     try:
         response = requests.get(GOLD_API_URL, headers=headers)
         data = response.json()
-        if "price" not in data:
-            return None, data
-
         return {
             "price": data["price"],
             "gram_24k": data["price_gram_24k"],
             "gram_22k": data["price_gram_22k"],
             "gram_21k": data["price_gram_21k"],
             "timestamp": data["timestamp"]
-        }, None
+        }
     except Exception as e:
-        return None, str(e)
+        print("ERROR:", e)
+        return None
 
 def analyze_price(current, previous):
     diff = current - previous
     percent = (diff / previous) * 100
     if percent >= 2.5:
-        signal = "💸 Gold price increased {:.2f}% – Buy now!".format(percent)
+        signal = f"💸 Gold price increased {percent:.2f}% – Buy now!"
     elif percent <= -2.5:
-        signal = "🚫 Gold price dropped {:.2f}% – Wait for a better price.".format(percent)
+        signal = f"🚫 Gold price dropped {percent:.2f}% – Wait for a better price."
     else:
         signal = "📊 Gold price stable – Hold off on buying."
     return signal, percent
 
-async def gold_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def build_gold_message():
     global previous_prices
-
-    current, error = get_gold_price()
-    if error or not current:
-        await update.message.reply_text("❌ Failed to fetch gold price.\n" + str(error or current))
-        return
+    current = get_gold_price()
+    if not current:
+        return "❌ Failed to fetch gold price."
 
     timestamp_human = datetime.datetime.fromtimestamp(current["timestamp"], datetime.timezone(datetime.timedelta(hours=8)))
     message = (
@@ -64,24 +60,30 @@ async def gold_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if all(previous_prices.values()):
         message += "\n\n📉 Price Change:"
         for karat in ["gram_24k", "gram_22k", "gram_21k"]:
-            current_value = current[karat]
-            prev_value = previous_prices[karat]
-            change = current_value - prev_value
-            label = karat.replace("gram_", "").upper()
+            change = current[karat] - previous_prices[karat]
+            label = karat.replace("gram_", "") + "K"
             message += f"\n{label}: {change:+.2f} MYR"
 
-        signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
+        signal, _ = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
         message += f"\n\nSummary:\n{signal}"
     else:
         message += "\nℹ️ No previous price data for comparison yet."
 
-    for karat in previous_prices:
-        previous_prices[karat] = current[karat]
+    previous_prices.update({
+        "gram_24k": current["gram_24k"],
+        "gram_22k": current["gram_22k"],
+        "gram_21k": current["gram_21k"]
+    })
 
-    await update.message.reply_text(message)
+    return message
 
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("gold", gold_command))
-    print("🚀 Bot is running. Use /gold in Telegram to get prices.")
-    app.run_polling()
+# === Telegram Command Handler ===
+async def handle_gold(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = build_gold_message()
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+
+# === For Flask-based manual run ===
+async def main():
+    bot = Bot(token=BOT_TOKEN)
+    message = build_gold_message()
+    await bot.send_message(chat_id=CHAT_ID, text=message)

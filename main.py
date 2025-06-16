@@ -1,10 +1,10 @@
-from flask import Flask
-import asyncio
-from gold_tracker import main as run_bot
+from telegram.ext import ApplicationBuilder, CommandHandler
+from gold_tracker import handle_gold
+import os
 
-app = Flask(__name__)
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 
-@app.route('/')
-def index():
-    asyncio.run(run_bot())
-    return "Gold price checked and sent!"
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("gold", handle_gold))
+    app.run_polling()
