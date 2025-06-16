@@ -53,8 +53,12 @@ def analyze_price(current, previous):
 async def main():
     global previous_prices
     current = get_gold_price()
+
     if current:
-        timestamp_human = datetime.datetime.fromtimestamp(current["timestamp"], datetime.timezone(datetime.timedelta(hours=8)))
+        timestamp_human = datetime.datetime.fromtimestamp(
+            current["timestamp"],
+            datetime.timezone(datetime.timedelta(hours=8))
+        )
 
         message = (
             f"💰 Gold Price Alert (MYR) - {timestamp_human.strftime('%d %b %Y %I:%M %p')}\n"
@@ -64,20 +68,26 @@ async def main():
             f"21K: RM {current['gram_21k']:.2f}/g\n"
         )
 
-        if all(previous_prices.values()):
-            message += "\n\n📉 Price Change:"
-            for karat in ["gram_24k", "gram_22k", "gram_21k"]:
-                current_value = current[karat]
-                prev_value = previous_prices[karat]
+        message += "\n\n📉 Price Change:"
+        for karat in ["gram_24k", "gram_22k", "gram_21k"]:
+            current_value = current[karat]
+            prev_value = previous_prices[karat]
+
+            if prev_value is not None:
                 change = current_value - prev_value
-                label = karat.replace("gram_", "").upper()  # Example: 24K
-                message += f"\n{label}: {change:+.2f} MYR"
+                change_display = f"{change:+.2f} MYR"
+            else:
+                change_display = "No previous data"
 
+            label = karat.replace("gram_", "").upper()
+            message += f"\n{label}: {change_display}"
+
+        # Always show summary based on 24K
+        if previous_prices["gram_24k"] is not None:
+            signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
         else:
-            message += "\nℹ️ No previous price data for comparison yet."
-
-        # Summary signal (based only on 24K)
-        signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
+            signal = "📊 No previous data to analyze trend – Monitoring begins."
+        
         message += f"\n\nSummary:\n{signal}"
 
         # Update previous prices
@@ -87,3 +97,4 @@ async def main():
         await send_telegram_alert(message)
     else:
         await send_telegram_alert("❌ Failed to fetch gold price.")
+
