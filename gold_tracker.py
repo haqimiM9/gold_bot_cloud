@@ -55,7 +55,6 @@ async def main():
     global previous_prices
     current = get_gold_price()
     if current:
-        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
         timestamp_human = datetime.datetime.fromtimestamp(current["timestamp"], datetime.timezone(datetime.timedelta(hours=8)))
 
         message = (
@@ -66,13 +65,19 @@ async def main():
             f"21K: RM {current['gram_21k']:.2f}/g\n"
         )
 
-        # Include change per gold type if previous exists
         if all(previous_prices.values()):
-            changes = []
+            message += "\n\n📉 Price Change:"
             for karat in ["gram_24k", "gram_22k", "gram_21k"]:
-                change = current[karat] - previous_prices[karat]
-                changes.append(f"{karat.replace('gram_', '').upper()}: {change:+.2f}")
-            message += "\n\n📉 Price Change:\n" + "\n".join(changes)
+                current_value = current[karat]
+                prev_value = previous_prices[karat]
+                change = current_value - prev_value
+                label = karat.replace("gram_", "").upper()  # Example: 24K
+                message += f"\n{label}: {change:+.2f} MYR"
+
+            # Summary signal (based only on 24K)
+            signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
+            message += f"\n\n Summary:"
+            message += f"\n{signal}"
         else:
             message += "\nℹ️ No previous price data for comparison yet."
 
