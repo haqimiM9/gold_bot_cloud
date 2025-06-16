@@ -32,26 +32,11 @@ def get_gold_price():
         print("ERROR:", e)
         return None
 
-def analyze_price(current_price, previous_price):
-    if previous_price is None:
-        return "No previous data to analyze."
-    change = current_price - previous_price
-    if change > 0:
-        return f"The gold price has increased by RM {change:.2f}. It is not a good time to buy."
-    elif change < 0:
-        return f"The gold price has decreased by RM {change:.2f}. It is a good time to buy."
-    else:
-        return "The gold price has not changed."
-
 async def main():
     global previous_price
     current = get_gold_price()
     if current:
-        today = datetime.date.today()
-        signal = "✨" if current["price"] > previous_price else "❗️"
-        msg = f"📅 {today.strftime('%d/%m/%Y')} {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%H:%M')} (Asia/Kuala_Lumpur)\n{signal}\n"
         message = (
-            f"{msg}"
             f"🟡 Gold Price Alert (MYR)\n"
             f"Spot Price: RM {current['price']:.2f}\n"
             f"999.9 (24K): RM {current['gram_24k']:.2f}/g\n"
@@ -61,12 +46,8 @@ async def main():
         if previous_price and current['price'] != previous_price:
             change = current['price'] - previous_price
             message += f"\n📈 Change: RM {change:+.2f}"
-        
-        analysis = analyze_price(current['price'], previous_price)
-        message += f"\n\n🔍 Analysis: {analysis}"
 
         previous_price = current['price']
         await send_telegram_alert(message)
     else:
         await send_telegram_alert("❌ Failed to fetch gold price.")
-
