@@ -45,29 +45,41 @@ def analyze_price(current, previous):
 
     return signal, percent
 
+previous_prices = {
+    "gram_24k": None,
+    "gram_22k": None,
+    "gram_21k": None
+}
+
 async def main():
-    global previous_price
+    global previous_prices
     current = get_gold_price()
     if current:
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
         timestamp_human = datetime.datetime.fromtimestamp(current["timestamp"], datetime.timezone(datetime.timedelta(hours=8)))
-        
+
         message = (
-            f"💰 Gold Price Alert (MYR) - {now.strftime('%d %b %Y %I:%M %p')}\n"
-            f"Price Update Time: {timestamp_human.strftime('%d %b %Y %I:%M %p')}\n"
+            f"💰 Gold Price Alert (MYR) - {timestamp_human.strftime('%d %b %Y %I:%M %p')}\n"
             f"Spot Price: RM {current['price']:.2f}\n"
             f"999.9 (24K): RM {current['gram_24k']:.2f}/g\n"
             f"916 (22K): RM {current['gram_22k']:.2f}/g\n"
             f"21K: RM {current['gram_21k']:.2f}/g\n"
         )
 
-        if previous_price:
-            signal, change = analyze_price(current["gram_24k"], previous_price)
-            message += f"\n📈 Change: RM {change:+.2f} ({signal})"
+        # Include change per gold type if previous exists
+        if all(previous_prices.values()):
+            changes = []
+            for karat in ["gram_24k", "gram_22k", "gram_21k"]:
+                change = current[karat] - previous_prices[karat]
+                changes.append(f"{karat.replace('gram_', '').upper()}: {change:+.2f}")
+            message += "\n\n📉 Price Change:\n" + "\n".join(changes)
         else:
-            message += "\nℹ️ No previous price to compare yet."
+            message += "\nℹ️ No previous price data for comparison yet."
 
-        previous_price = current["gram_24k"]
+        # Update previous prices
+        for karat in previous_prices:
+            previous_prices[karat] = current[karat]
+
         await send_telegram_alert(message)
     else:
         await send_telegram_alert("❌ Failed to fetch gold price.")
