@@ -68,29 +68,22 @@ async def main():
             f"21K: RM {current['gram_21k']:.2f}/g\n"
         )
 
-        message += "\n\n📉 Price Change:"
-        for karat in ["gram_24k", "gram_22k", "gram_21k"]:
-            current_value = current[karat]
-            prev_value = previous_prices[karat]
-
-            if prev_value is not None:
+        if all(previous_prices.values()):
+            message += "\n\n📉 Price Change:"
+            for karat in ["gram_24k", "gram_22k", "gram_21k"]:
+                current_value = current[karat]
+                prev_value = previous_prices[karat]
                 change = current_value - prev_value
-                change_display = f"{change:+.2f} MYR"
-            else:
-                change_display = "No previous data"
+                label = karat.replace("gram_", "").upper()
+                message += f"\n{label}: {change:+.2f} MYR"
 
-            label = karat.replace("gram_", "").upper()
-            message += f"\n{label}: {change_display}"
-
-        # Always show summary based on 24K
-        if previous_prices["gram_24k"] is not None:
+            # ✅ Only now it's safe to analyze summary
             signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
+            message += f"\n\nSummary:\n{signal}"
         else:
-            signal = "📊 No previous data to analyze trend – Monitoring begins."
-        
-        message += f"\n\nSummary:\n{signal}"
+            message += "\nℹ️ No previous price data for comparison yet."
 
-        # Update previous prices
+        # ✅ Update previous prices after comparison
         for karat in previous_prices:
             previous_prices[karat] = current[karat]
 
