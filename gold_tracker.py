@@ -58,15 +58,15 @@ async def main():
             f"916 (22K): RM {current['gram_22k']:.2f}/g\n"
             f"21K: RM {current['gram_21k']:.2f}/g\n"
         )
-        signal, change = analyze_price(current["gram_24k"])
-        if previous_price and current['price'] != previous_price:
-            change = current['price'] - previous_price if previous_price else None
-            if change is not None and change > 0:
-                signal, _ = analyze_price(current['price'], previous_price)
-            
-            message += f"\n📈 Change: RM {change:+.2f} ({signal})"
 
-        previous_price = current['price']
+        if previous_price:
+            signal, change = analyze_price(current["gram_24k"], previous_price)
+            message += f"\n📈 Change: RM {change:+.2f} ({signal})"
+        else:
+            message += "\nℹ️ No previous price to compare yet."
+
+        previous_price = current["gram_24k"]
         await send_telegram_alert(message)
     else:
         await send_telegram_alert("❌ Failed to fetch gold price.")
+
