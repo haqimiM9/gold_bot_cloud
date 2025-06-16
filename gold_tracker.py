@@ -76,10 +76,10 @@ async def main():
         else:
             message += "\nℹ️ No previous price data for comparison yet."
 
-            # Summary signal (based only on 24K)
-            signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
-            message += f"\n\nSummary:\n{signal}"
-            
+        # Summary signal (based only on 24K)
+        signal, percent = analyze_price(current["gram_24k"], previous_prices["gram_24k"])
+        message += f"\n\nSummary:\n{signal}"
+
         # Update previous prices
         for karat in previous_prices:
             previous_prices[karat] = current[karat]
