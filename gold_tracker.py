@@ -1,8 +1,11 @@
+from flask import Flask, request
 import requests
 import datetime
 import asyncio
 import os
 from telegram import Bot
+
+app = Flask(__name__)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
@@ -32,7 +35,7 @@ def get_gold_price():
         print("ERROR:", e)
         return None
 
-async def main():
+async def run_check():
     global previous_price
     current = get_gold_price()
     if current:
@@ -46,11 +49,12 @@ async def main():
         if previous_price and current['price'] != previous_price:
             change = current['price'] - previous_price
             message += f"\n📈 Change: RM {change:+.2f}"
-
         previous_price = current['price']
         await send_telegram_alert(message)
     else:
         await send_telegram_alert("❌ Failed to fetch gold price.")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@app.route("/", methods=["GET"])
+def index():
+    asyncio.run(run_check())
+    return "Gold price alert sent.", 200
