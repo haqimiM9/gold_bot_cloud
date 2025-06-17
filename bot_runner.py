@@ -1,20 +1,19 @@
-# bot_runner.py
-
+from telegram.ext import Application, CommandHandler
 import os
-from telegram.ext import Application
-from bot_handler import gold_command
-from telegram.ext import CommandHandler
+from bot_handler import handle_gold
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 
-async def main():
+def main():
+    # Create the application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    app.add_handler(CommandHandler("gold", gold_command))
+    # Register command handler
+    app.add_handler(CommandHandler("gold", handle_gold))
 
-    print("Bot is running. Send /gold to your bot.")
-    await app.run_polling()
+    # Start the bot
+    print("Bot is running...")
+    app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
